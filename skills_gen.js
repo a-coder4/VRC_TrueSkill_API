@@ -104,6 +104,10 @@ async function fetchAll(endpoint, params = {}) {
     if (!result.meta || result.meta.current_page >= result.meta.last_page) break;
 
     page++;
+    // Add extra delay between pages to avoid overwhelming the API
+    if (endpoint === '/teams') {
+      await sleep(1000); // 1 second delay between team pages
+    }
   }
 
   return out;
