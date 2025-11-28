@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
   if (!team) {
     res.status(400).json({
       error: 'Team parameter is required',
-      usage: 'GET /api/skills?team=1234A'
+      usage: 'GET /api/skills?team=1523W'
     });
     return;
   }
