@@ -39,11 +39,6 @@ module.exports = async (req, res) => {
       const data = snapshot.data();
       res.json({
         teamNumber: team,
-        // Regional/Local skills data
-        skillScore: data.skillScore || 0,
-        skillsRank: data.skillsRank || null,
-        driverScore: data.driverScore || 0,
-        progScore: data.progScore || 0,
         // World skills data
         worldSkillsRank: data.worldSkillsRank || null,
         worldSkillScore: data.worldSkillScore || 0,
