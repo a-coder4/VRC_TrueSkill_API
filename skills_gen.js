@@ -22,7 +22,7 @@ function initializeFirebase() {
   if (firebase_admin.apps.length > 0) {
     return getFirestore();
   }
-  
+
   try {
     if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
       const cred = firebase_admin.credential.cert({
@@ -130,16 +130,25 @@ function drawProgressBar(done, total, startTime) {
 
 async function main() {
   const startTime = Date.now();
-  
+
   console.log('🔍 Fetching current season...');
   const seasons = await fetchAll('/seasons', { program: [PROGRAM_ID] });
-  const currentSeason = seasons.find(s => s.current === true);
-  
+  let currentSeason = seasons.find(s => s.current === true);
+
   if (!currentSeason) {
-    console.error('❌ No current season found');
+    console.warn('⚠️ No season marked as "current" found. Falling back to the latest season by ID.');
+    // Sort by ID descending
+    seasons.sort((a, b) => b.id - a.id);
+    if (seasons.length > 0) {
+      currentSeason = seasons[0];
+    }
+  }
+
+  if (!currentSeason) {
+    console.error('❌ No seasons found at all');
     return;
   }
-  
+
   console.log(`🎯 Current season: ${currentSeason.name} (ID: ${currentSeason.id})`);
 
   console.log('👥 Fetching teams...');
@@ -154,21 +163,21 @@ async function main() {
   console.log(`📊 Found ${teams.length} teams`);
 
   const teamSkillsData = [];
-  
+
   console.log('\n🎮 Fetching skills for each team...');
   for (let i = 0; i < teams.length; i++) {
     const team = teams[i];
     drawProgressBar(i, teams.length, startTime);
-    
+
     try {
       const skills = await apiFetch('/teams/' + team.id + '/skills', {
         season: [currentSeason.id]
       });
-      
+
       if (skills.data && skills.data.length > 0) {
         const skill = skills.data[0];
         const combined = (skill.driver || 0) + (skill.programming || 0);
-        
+
         teamSkillsData.push({
           teamNumber: team.number,
           season: currentSeason.id,
@@ -181,7 +190,7 @@ async function main() {
       console.error(`\n❌ Error fetching skills for team ${team.number}: ${error.message}`);
     }
   }
-  
+
   process.stdout.write('\n');
   console.log(`📈 Found skills data for ${teamSkillsData.length} teams`);
 
@@ -195,11 +204,11 @@ async function main() {
   console.log('\n📄 Writing skills data to CSV...');
   const csvHeader = 'team,season,driver,programming,combined';
   const csvLines = [csvHeader];
-  
+
   for (const team of teamSkillsData) {
     csvLines.push(`${team.teamNumber},${team.season},${team.driverScore},${team.progScore},${team.skillScore}`);
   }
-  
+
   try {
     await fs.writeFile('skills.csv', csvLines.join('\n'));
     console.log(`✅ Skills data written to skills.csv (${teamSkillsData.length} teams)`);
@@ -209,26 +218,26 @@ async function main() {
 
   console.log('\n🔥 Updating Firebase with skills data...');
   const db = initializeFirebase();
-  
+
   if (!db) {
     console.log('❌ Firebase not configured. Cannot update database.');
   } else {
     let batch = db.batch();
     let batchCount = 0;
     let updatedTeams = 0;
-    
+
     for (const team of teamSkillsData) {
       const docRef = db.collection('leaderboard').doc(team.teamNumber);
-      
+
       batch.set(docRef, {
         skillScore: team.skillScore,
         skillsRank: team.skillsRank,
         driverScore: team.driverScore,
         progScore: team.progScore
       }, { merge: true });
-      
+
       batchCount++;
-      
+
       if (batchCount === 500) {
         try {
           await batch.commit();
@@ -240,7 +249,7 @@ async function main() {
         }
       }
     }
-    
+
     if (batchCount > 0) {
       try {
         await batch.commit();
@@ -249,14 +258,14 @@ async function main() {
         console.error(`Error committing final batch: ${error}`);
       }
     }
-    
+
     console.log(`✅ Updated ${updatedTeams} teams in Firestore with skills data`);
   }
 
   const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log(`✅ Done: ${teamSkillsData.length} teams processed`);
   console.log(`⏱️ Elapsed time: ${elapsed} seconds`);
-  
+
   console.log('\n🏆 Top 10 teams by combined skills:');
   teamSkillsData.slice(0, 10).forEach((team, index) => {
     console.log(`${(index + 1).toString().padStart(2, ' ')}. ${team.teamNumber}: ${team.skillScore} (Driver: ${team.driverScore}, Programming: ${team.progScore})`);
