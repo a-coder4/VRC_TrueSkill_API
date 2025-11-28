@@ -39,10 +39,22 @@ module.exports = async (req, res) => {
       const data = snapshot.data();
       res.json({
         teamNumber: team,
+        // Regional/Local skills data
         skillScore: data.skillScore || 0,
         skillsRank: data.skillsRank || null,
         driverScore: data.driverScore || 0,
-        progScore: data.progScore || 0
+        progScore: data.progScore || 0,
+        // World skills data
+        worldSkillsRank: data.worldSkillsRank || null,
+        worldSkillScore: data.worldSkillScore || 0,
+        worldDriverScore: data.worldDriverScore || 0,
+        worldProgScore: data.worldProgScore || 0,
+        // Team info
+        gradeLevel: data.gradeLevel || null,
+        organization: data.organization || null,
+        city: data.city || null,
+        region: data.region || null,
+        country: data.country || null
       });
     } else {
       res.status(404).json({ error: 'Team not found' });

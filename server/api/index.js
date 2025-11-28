@@ -1,6 +1,7 @@
 import express from 'express';
 import admin from 'firebase-admin';
 import dotenv from 'dotenv';
+import { runCsvSkillsImport } from '../../skills_csv_importer.js';
 
 // Load environment variables
 dotenv.config();
@@ -90,6 +91,20 @@ app.get('/leaderboard/skills', async (req, res) => {
     res.json(teams);
   } catch (err) {
     res.status(500).json({ error: 'Firebase error: ' + err.message });
+  }
+});
+
+app.post('/import/skills-csv', async (_req, res) => {
+  try {
+    const result = await runCsvSkillsImport();
+    res.json({
+      message: 'Skills CSV import complete',
+      teamsProcessed: result.teamsProcessed,
+      updatedTeams: result.updatedTeams,
+      downloads: result.downloaded
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Import failed: ' + err.message });
   }
 });
 

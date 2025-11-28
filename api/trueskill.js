@@ -38,13 +38,24 @@ module.exports = async (req, res) => {
     if (snapshot.exists) {
       const data = snapshot.data();
       res.json({
-        trueSkill: parseFloat(data.conservativeScore),
-        trueSkillRanking: parseInt(data.rank),
-        opr: parseFloat(data.opr),
-        dpr: parseFloat(data.dpr),
-        ccvm: parseFloat(data.ccvm),
-        winPercentage: parseFloat(data.winPercentage),
-        ts2026: data.ts2026 || 0.0
+        // TrueSkill data
+        trueSkill: parseFloat(data.conservativeScore) || 0,
+        trueSkillRanking: parseInt(data.rank) || null,
+        opr: parseFloat(data.opr) || 0,
+        dpr: parseFloat(data.dpr) || 0,
+        ccvm: parseFloat(data.ccvm) || 0,
+        winPercentage: parseFloat(data.winPercentage) || 0,
+        ts2026: data.ts2026 || 0.0,
+        // World skills data
+        worldSkillsRank: data.worldSkillsRank || null,
+        worldSkillScore: data.worldSkillScore || 0,
+        worldDriverScore: data.worldDriverScore || 0,
+        worldProgScore: data.worldProgScore || 0,
+        // Team info
+        gradeLevel: data.gradeLevel || null,
+        organization: data.organization || null,
+        region: data.region || null,
+        country: data.country || null
       });
     } else {
       res.status(404).json({ error: 'Team not found' });
