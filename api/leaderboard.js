@@ -25,21 +25,18 @@ module.exports = async (req, res) => {
 
   try {
     const limit = parseInt(req.query.limit) || 50;
-    const type = req.query.type || 'local'; // 'local', 'world', or 'all'
-    const gradeLevel = req.query.grade; // 'High School' or 'Middle School'
+    const gradeLevel = req.query.grade; // 'High School' or 'Middle School' or 'hs' or 'ms'
     
     let query = admin.firestore().collection('leaderboard');
     
-    // Choose ordering based on type
-    if (type === 'world') {
-      query = query.orderBy('worldSkillsRank', 'asc');
-    } else {
-      query = query.orderBy('skillsRank', 'asc');
-    }
+    // Order by world skills rank
+    query = query.orderBy('worldSkillsRank', 'asc');
     
     // Apply grade level filter if specified
     if (gradeLevel) {
-      query = query.where('gradeLevel', '==', gradeLevel);
+      const grade = gradeLevel === 'hs' ? 'High School' : 
+                    gradeLevel === 'ms' ? 'Middle School' : gradeLevel;
+      query = query.where('gradeLevel', '==', grade);
     }
     
     const snapshot = await query.limit(limit).get();
@@ -47,27 +44,16 @@ module.exports = async (req, res) => {
     const teams = [];
     snapshot.forEach(doc => {
       const data = doc.data();
-      const hasLocalSkills = data.skillScore && data.skillScore > 0;
-      const hasWorldSkills = data.worldSkillScore && data.worldSkillScore > 0;
-      
-      if ((type === 'local' && hasLocalSkills) || 
-          (type === 'world' && hasWorldSkills) || 
-          (type === 'all' && (hasLocalSkills || hasWorldSkills))) {
+      if (data.worldSkillScore && data.worldSkillScore > 0) {
         teams.push({
           teamNumber: doc.id,
-          // Local skills
-          skillScore: data.skillScore || 0,
-          skillsRank: data.skillsRank || null,
-          driverScore: data.driverScore || 0,
-          progScore: data.progScore || 0,
-          // World skills
           worldSkillsRank: data.worldSkillsRank || null,
           worldSkillScore: data.worldSkillScore || 0,
           worldDriverScore: data.worldDriverScore || 0,
           worldProgScore: data.worldProgScore || 0,
-          // Team info
           gradeLevel: data.gradeLevel || null,
           organization: data.organization || null,
+          city: data.city || null,
           region: data.region || null,
           country: data.country || null
         });
@@ -76,7 +62,6 @@ module.exports = async (req, res) => {
 
     res.json({
       count: teams.length,
-      type: type,
       gradeLevel: gradeLevel || 'all',
       teams: teams
     });
